@@ -10,22 +10,33 @@ A personal customized Tmux setup with a minimal status bar, improved shell promp
 
 ## Setup
 
+### Automatic Installation
+
 ```bash
-mkdir -p ~/.config/tmux/
-git clone https://github.com/mohamadrnasr/tmux-config.git "$HOME/.config/tmux"
+git clone https://github.com/mohamadrnasr/tmux-config.git ~/.config/tmux
+cd ~/.config/tmux
+./install
+```
+
+### Manual Installation
+
+Clone the repository into the Tmux configuration directory:
+
+```bash
+git clone https://github.com/mohamadrnasr/tmux-config.git ~/.config/tmux
 ```
 
 ### Build Modules
 
-Build the Wi-Fi and Bluetooth status modules:
+If you installed the configuration manually, build the Wi-Fi and Bluetooth status modules:
 
 ```bash
 cd ~/.config/tmux/modules/
 
-# Wi-Fi status
+# Build Wi-Fi status module
 gcc -O2 -Wall -Wextra tmux_wifi.c -o tmux_wifi $(pkg-config --cflags --libs libsystemd)
 
-# Bluetooth status
+# Build Bluetooth status module
 gcc -O2 -Wall -Wextra tmux_bluetooth.c -o tmux_bluetooth $(pkg-config --cflags --libs libsystemd)
 ```
 
