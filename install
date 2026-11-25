@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+# Directories
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TARGET_DIR="$HOME/.config/tmux"
+MODULE_DIR="$TARGET_DIR/modules"
+
+# Output helpers
+info() {
+    echo -e "\033[1;34m[INFO]\033[0m $1"
+}
+
+success() {
+    echo -e "\033[1;32m[OK]\033[0m $1"
+}
+
+error() {
+    echo -e "\033[1;31m[ERROR]\033[0m $1" >&2
+    exit 1
+}
+
+# Check operating system
+[[ "$(uname -s)" == "Linux" ]] || error "This configuration only supports Linux."
+
+info "Starting Tmux configuration setup..."
+
+# Check required build tools
+for cmd in gcc pkg-config; do
+    command -v "$cmd" >/dev/null 2>&1 || error "$cmd is required."
+done
+
+# Check libsystemd development files
+pkg-config --exists libsystemd || error \
+    "libsystemd development files are missing."
+
+info "Build dependencies found."
+
+# Create directories
+mkdir -p "$MODULE_DIR"
+
+# Determine Bash configuration filename
+if grep -qF '.tmux-bashrc' "$SCRIPT_DIR/tmux.conf"; then
+    BASHRC_NAME=".tmux-bashrc"
+else
+    BASHRC_NAME=".tmux_bashrc"
+fi
+
+# Copy configuration files
+copy_file() {
+    local src="$1"
+    local dst="$2"
+
+    [[ -f "$src" ]] || error "Source file not found: $src"
+
+    if [[ -e "$dst" ]] && [[ "$src" -ef "$dst" ]]; then
+        return
+    fi
+
+    install -m 644 "$src" "$dst"
+}
+
+info "Copying configuration files..."
+
+copy_file "$SCRIPT_DIR/tmux.conf" "$TARGET_DIR/tmux.conf"
+
+if [[ -f "$SCRIPT_DIR/$BASHRC_NAME" ]]; then
+    copy_file "$SCRIPT_DIR/$BASHRC_NAME" "$TARGET_DIR/$BASHRC_NAME"
+else
+    error "Bash configuration file not found."
+fi
+
+# Copy module sources
+copy_file "$SCRIPT_DIR/modules/tmux_wifi.c" \
+          "$MODULE_DIR/tmux_wifi.c"
+
+copy_file "$SCRIPT_DIR/modules/tmux_bluetooth.c" \
+          "$MODULE_DIR/tmux_bluetooth.c"
+
+success "Configuration files copied."
+
+# Prepare compiler flags
+read -r -a CFLAGS_SYSTEMD <<< "$(pkg-config --cflags libsystemd)"
+read -r -a LIBS_SYSTEMD <<< "$(pkg-config --libs libsystemd)"
+
+# Temporary build files
+tmp_wifi="$(mktemp "$MODULE_DIR/.tmux_wifi.XXXXXX")"
+tmp_bluetooth="$(mktemp "$MODULE_DIR/.tmux_bluetooth.XXXXXX")"
+
+cleanup() {
+    rm -f "${tmp_wifi:-}" "${tmp_bluetooth:-}"
+}
+
+trap cleanup EXIT
+
+# Build Wi-Fi module
+info "Building Wi-Fi module..."
+
+gcc -O2 -Wall -Wextra \
+    "${CFLAGS_SYSTEMD[@]}" \
+    "$MODULE_DIR/tmux_wifi.c" \
+    -o "$tmp_wifi" \
+    "${LIBS_SYSTEMD[@]}" || error "Wi-Fi module build failed."
+
+mv "$tmp_wifi" "$MODULE_DIR/tmux_wifi"
+tmp_wifi=""
+
+success "Wi-Fi module built."
+
+# Build Bluetooth module
+info "Building Bluetooth module..."
+
+gcc -O2 -Wall -Wextra \
+    "${CFLAGS_SYSTEMD[@]}" \
+    "$MODULE_DIR/tmux_bluetooth.c" \
+    -o "$tmp_bluetooth" \
+    "${LIBS_SYSTEMD[@]}" || error "Bluetooth module build failed."
+
+mv "$tmp_bluetooth" "$MODULE_DIR/tmux_bluetooth"
+tmp_bluetooth=""
+
+success "Bluetooth module built."
+
+echo
+success "Tmux configuration installed successfully!"
+echo "Close and reopen Tmux to apply the changes."
