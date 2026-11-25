@@ -1,3 +1,47 @@
 source ~/.bashrc
 PS1='\[\033[0;37m\]\A│\[\033[01;32m\]\u\[\033[0;37m\]:\[\033[0;36m\]\w\[\033[0;35m\]\$\[\033[00m\] ⧽ '
 
+# Root access
+__tmux_root_state() {
+        [[ -z "$TMUX_PANE" ]] && return
+
+        if (( EUID == 0 )); then
+                tmux set-option -p -t "$TMUX_PANE" @is_root 1 >/dev/null 2>&1
+        else
+                tmux set-option -p -t "$TMUX_PANE" @is_root 0 >/dev/null 2>&1
+        fi
+}
+
+
+trap '
+if [[ -n "$TMUX_PANE" ]]; then
+        case "$BASH_COMMAND" in
+                sudo\ *|sudo)
+                        tmux set -pt "$TMUX_PANE" @is_root 1 >/dev/null 2>&1
+                        ;;
+        esac
+fi
+' DEBUG
+
+PROMPT_COMMAND="__tmux_root_state${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
+
+# Set one flag for ssh
+ssh() {
+        [[ -z "$TMUX_PANE" ]] && { command ssh "$@"; return $?; }
+
+        local pane="$TMUX_PANE"
+        local ret
+
+        tmux set-option -p -t "$pane" @ssh_active 1 >/dev/null 2>&1
+
+        trap 'tmux set-option -p -t "$pane" @ssh_active 0 >/dev/null 2>&1' INT TERM HUP
+
+        command ssh "$@"
+        ret=$?
+
+        trap - INT TERM HUP
+        tmux set-option -p -t "$pane" @ssh_active 0 >/dev/null 2>&1
+
+        return "$ret"
+}
+
