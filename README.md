@@ -4,7 +4,7 @@ A personal customized Tmux setup with a minimal status bar, improved shell promp
 
 ## Preview
 
-![Tmux Preview](assets/tmux-preview_02.png)
+![Tmux Preview](assets/tmux-preview.png)
 
 ## Setup
 
