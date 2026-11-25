@@ -4,7 +4,7 @@ A personal customized Tmux setup with a minimal status bar, improved shell promp
 
 ## Preview
 
-![Tmux Preview](assets/tmux-preview.png)
+![Tmux Preview](assets/tmux-preview_02.png)
 
 ## Setup
 
@@ -12,8 +12,8 @@ A personal customized Tmux setup with a minimal status bar, improved shell promp
 mkdir -p ~/.config/tmux/
 git clone https://github.com/mohamadrnasr/tmux-config.git "$HOME/.config/tmux"
 ```
-Close and reopen Tmux to apply the configuration.
 
+Close and reopen Tmux to apply the configuration.
 
 ## Dependencies
 
@@ -47,8 +47,11 @@ Replace `wl-copy` with the appropriate command:
 - Custom color scheme and pane borders.
 - Status bar moved to the top.
 - Custom shell prompt with username, current directory, and time.
+- SSH and Root session indicators:
+  - Active windows use background colors to indicate SSH or Root sessions.
+  - Inactive windows use foreground text colors for the same indicators.
+  - Normal sessions have their own distinct color scheme.
 - LazyGit integration through a popup (`Ctrl + G`).
 - Terminal popup in the current pane's directory (`Ctrl + P`).
 - Clipboard integration (`Alt + W` in copy mode).
 - 24-hour clock mode.
-
